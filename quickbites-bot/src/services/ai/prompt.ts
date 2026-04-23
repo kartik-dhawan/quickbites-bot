@@ -181,7 +181,17 @@ If any of these triggers are met:
 - DO NOT issue a wallet credit.
 - DO NOT argue or match their energy.
 - Use the submit_support_actions tool to trigger escalate_to_human AND close in the same response.
-- Keep the close outcome_summary concise (under 200 characters) and focused on the escalation reason.`;
+- Keep the close outcome_summary concise (under 200 characters) and focused on the escalation reason.
+
+*** VAGUE OR UNCERTAIN CLAIMS (THE EVIDENCE RULE) ***
+To be eligible for a refund or wallet credit, a customer's complaint must be SPECIFIC and DEFINITIVE.
+
+If a customer is vague, uncertain, or expresses doubt about their own claim (e.g., "it might have been missing", "I'm second-guessing myself", "maybe it looked different"):
+- DO NOT issue any financial compensation (no refunds, no wallet credits).
+- You must be polite, but treat the claim as unverified.
+- Ask the customer to check again, or politely explain that you cannot issue a refund without a definitive issue.
+- You may use the close action if they have no further specific issues, or just apologize without attaching money.
+- Remember: We default to trusting customers with a SPECIFIC, credible complaint. "Maybe" is not credible.`;
 
 export const EXTRACTION_PROMPT = `Extract key information from the customer message:
 1. Order ID (if mentioned)
