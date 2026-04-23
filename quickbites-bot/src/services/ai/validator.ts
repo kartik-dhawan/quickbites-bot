@@ -176,10 +176,10 @@ export class ActionValidator {
       };
     }
 
-    if (action.outcome_summary.length > 500) {
+    if (action.outcome_summary.length > 1000) {
       return {
         isValid: false,
-        errorMessage: 'Close outcome summary cannot exceed 500 characters'
+        errorMessage: 'Close outcome summary cannot exceed 1000 characters'
       };
     }
 
@@ -193,17 +193,6 @@ export class ActionValidator {
       return {
         isValid: false,
         errorMessage: multipleRefundsValidation.error
-      };
-    }
-
-    // Check for conflicting actions
-    const hasClose = actions.some(a => a.type === 'close');
-    const hasEscalate = actions.some(a => a.type === 'escalate_to_human');
-
-    if (hasClose && hasEscalate) {
-      return {
-        isValid: false,
-        errorMessage: 'Cannot both close and escalate in the same response'
       };
     }
 

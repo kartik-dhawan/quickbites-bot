@@ -31,7 +31,7 @@ const flagAbuseSchema = baseActionSchema.shape({
 
 const closeSchema = baseActionSchema.shape({
   type: yup.string().oneOf(['close']).required(),
-  outcome_summary: yup.string().required()
+  outcome_summary: yup.string().max(1000).required()
 }).noUnknown(true);
 
 // Union of all action types

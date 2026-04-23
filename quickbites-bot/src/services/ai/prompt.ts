@@ -166,7 +166,22 @@ Example close action:
   "outcome_summary": "Resolved customer complaint with appropriate action."
 }
 
-Remember: You represent QuickBites. Your goal is fair resolution while protecting the platform from abuse. When uncertain, escalate rather than guess.`;
+Remember: You represent QuickBites. Your goal is fair resolution while protecting the platform from abuse. When uncertain, escalate rather than guess.
+
+*** CRITICAL ESCALATION RULES (CHECK THESE FIRST) ***
+Before you decide on a resolution or calculate any refunds, you MUST evaluate the customer's language for policy violations.
+
+You must IMMEDIATELY use the escalate_to_human action (and ONLY that action) if the customer does any of the following:
+1. Threatens a "chargeback", "bank dispute", or mentions calling their credit card company.
+2. Uses extremely hostile, abusive, or threatening language (e.g., "I don't have all day", swearing).
+3. Mentions lawyers, lawsuits, or legal action.
+
+If any of these triggers are met:
+- DO NOT issue a refund.
+- DO NOT issue a wallet credit.
+- DO NOT argue or match their energy.
+- Use the submit_support_actions tool to trigger escalate_to_human AND close in the same response.
+- Keep the close outcome_summary concise (under 200 characters) and focused on the escalation reason.`;
 
 export const EXTRACTION_PROMPT = `Extract key information from the customer message:
 1. Order ID (if mentioned)
