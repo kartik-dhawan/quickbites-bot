@@ -8,7 +8,7 @@ export const anthropicTools = [
     name: 'fetch_order_context',
     description: 'Get detailed information about a specific order including customer, restaurant, rider, and items',
     input_schema: {
-      type: 'object',
+      type: 'object' as const,
       properties: {
         order_id: {
           type: 'integer',
@@ -22,7 +22,7 @@ export const anthropicTools = [
     name: 'fetch_customer_history',
     description: 'Get a customer\'s order history, spending patterns, and loyalty tier',
     input_schema: {
-      type: 'object',
+      type: 'object' as const,
       properties: {
         customer_id: {
           type: 'integer',
@@ -36,7 +36,7 @@ export const anthropicTools = [
     name: 'fetch_rider_incidents',
     description: 'Get information about a rider\'s incident history including verified vs unverified incidents',
     input_schema: {
-      type: 'object',
+      type: 'object' as const,
       properties: {
         rider_id: {
           type: 'integer',
@@ -50,7 +50,7 @@ export const anthropicTools = [
     name: 'fetch_restaurant_metrics',
     description: 'Get restaurant performance metrics including ratings, reviews, and complaint rates',
     input_schema: {
-      type: 'object',
+      type: 'object' as const,
       properties: {
         restaurant_id: {
           type: 'integer',
@@ -64,7 +64,7 @@ export const anthropicTools = [
     name: 'assess_abuse_risk',
     description: 'Evaluate abuse indicators for a customer including complaint patterns and refund frequency',
     input_schema: {
-      type: 'object',
+      type: 'object' as const,
       properties: {
         customer_id: {
           type: 'integer',
