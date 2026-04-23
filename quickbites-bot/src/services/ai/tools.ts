@@ -73,6 +73,57 @@ export const anthropicTools = [
       },
       required: ['customer_id']
     }
+  },
+  {
+    name: 'submit_support_actions',
+    description: 'Use this tool to execute support actions like refunds, complaints, or closing the chat. You MUST use this tool instead of just describing your actions in text. This is the final step after you have gathered all necessary information and made your decision.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        actions: {
+          type: 'array',
+          description: 'Array of support actions to execute',
+          items: {
+            type: 'object',
+            properties: {
+              type: {
+                type: 'string',
+                enum: ['issue_refund', 'file_complaint', 'escalate_to_human', 'flag_abuse', 'close'],
+                description: 'The type of action to take'
+              },
+              order_id: {
+                type: 'integer',
+                description: 'Order ID - REQUIRED for issue_refund and file_complaint actions. Do not include for other action types.'
+              },
+              amount_inr: {
+                type: 'integer',
+                description: 'Refund amount in INR - REQUIRED for issue_refund action. Do not include for other action types.'
+              },
+              method: {
+                type: 'string',
+                enum: ['cash', 'wallet_credit'],
+                description: 'Refund method - REQUIRED for issue_refund action, must be exactly "cash" or "wallet_credit". Do not include for other action types.'
+              },
+              target_type: {
+                type: 'string',
+                enum: ['rider', 'restaurant', 'app'],
+                description: 'Target for complaint - REQUIRED for file_complaint action. Do not include for other action types.'
+              },
+              reason: {
+                type: 'string',
+                description: 'Reason for the action - REQUIRED for escalate_to_human and flag_abuse actions. Do not include for other action types.'
+              },
+              outcome_summary: {
+                type: 'string',
+                description: 'Summary of the resolution - REQUIRED for close action. Do not include for other action types.'
+              }
+            },
+            required: ['type']
+          }
+        }
+      },
+      required: ['actions']
+    }
   }
 ];
 
@@ -94,6 +145,10 @@ export async function executeTool(toolName: string, input: any): Promise<any> {
 
       case 'assess_abuse_risk':
         return getAbuseIndicators(input.customer_id);
+
+      case 'submit_support_actions':
+        // Return the actions directly - they will be validated and sent to simulator
+        return input.actions;
 
       default:
         throw new Error(`Unknown tool: ${toolName}`);

@@ -64,8 +64,25 @@ export class ConversationEngine {
         // Validate actions
         const validationResult = await this.validator.validateAndCorrectActions(
           botResponse.actions,
-          this.orchestrator.getConversationHistory().map(msg => msg.content)
+          this.orchestrator.getConversationHistory().map(msg => {
+            // Handle both string and array content
+            if (typeof msg.content === 'string') {
+              return msg.content;
+            } else if (Array.isArray(msg.content)) {
+              // Extract text from content blocks
+              return msg.content
+                .filter((block: any) => block.type === 'text')
+                .map((block: any) => block.text)
+                .join(' ');
+            }
+            return '';
+          })
         );
+
+        console.log(`Validation result: ${validationResult.isValid ? '✅ Valid' : '❌ Invalid'}`);
+        if (!validationResult.isValid) {
+          console.log(`Validation error: ${validationResult.errorMessage}`);
+        }
 
         if (!validationResult.isValid) {
           console.log(`❌ Validation failed: ${validationResult.errorMessage}`);
@@ -95,13 +112,34 @@ export class ConversationEngine {
             timestamp: new Date().toISOString()
           });
 
+          // Check if conversation is done - MUST CHECK IMMEDIATELY
+          if (replyResponse.done === true) {
+            completionReason = replyResponse.close_reason || 'customer_closed';
+            console.log(`🏁 Conversation ended: ${completionReason}`);
+            break; // EXIT THE LOOP IMMEDIATELY
+          }
+
+          // Fallback: Check if customer message contains CLOSE (simulator might not detect it)
+          const nextCustomerMessage = replyResponse.customer_message || '';
+          if (nextCustomerMessage.includes('CLOSE') || nextCustomerMessage.includes('close')) {
+            completionReason = 'customer_closed';
+            console.log(`🏁 Customer sent CLOSE - ending conversation`);
+            break; // EXIT THE LOOP IMMEDIATELY
+          }
+
+          // Continue conversation only if not done
+          customerMessage = nextCustomerMessage;
+          console.log(`👤 Customer: "${customerMessage}"`);
+
         } else {
           // Actions are valid, send them
+          console.log(`📤 Sending actions to simulator:`, JSON.stringify(botResponse.actions, null, 2));
           const replyResponse = await this.simulator.sendReply(
             sessionId,
             botResponse.bot_message,
             botResponse.actions
           );
+          console.log(`📥 Simulator response status: ${replyResponse.done ? '✅ Accepted' : '❌ Rejected'}`);
 
           // Add to transcript
           transcript.push({
@@ -112,20 +150,28 @@ export class ConversationEngine {
             timestamp: new Date().toISOString()
           });
 
-          // Check if conversation is done
-          done = replyResponse.done;
-          if (done) {
+          // Check if conversation is done - MUST CHECK IMMEDIATELY
+          if (replyResponse.done === true) {
             completionReason = replyResponse.close_reason || 'customer_closed';
             console.log(`🏁 Conversation ended: ${completionReason}`);
 
             if (replyResponse.score) {
               console.log(`📊 Score: ${JSON.stringify(replyResponse.score)}`);
             }
-          } else {
-            // Continue conversation
-            customerMessage = replyResponse.customer_message || '';
-            console.log(`👤 Customer: "${customerMessage}"`);
+            break; // EXIT THE LOOP IMMEDIATELY
           }
+
+          // Fallback: Check if customer message contains CLOSE (simulator might not detect it)
+          const nextCustomerMessage = replyResponse.customer_message || '';
+          if (nextCustomerMessage.includes('CLOSE') || nextCustomerMessage.includes('close')) {
+            completionReason = 'customer_closed';
+            console.log(`🏁 Customer sent CLOSE - ending conversation`);
+            break; // EXIT THE LOOP IMMEDIATELY
+          }
+
+          // Continue conversation only if not done
+          customerMessage = nextCustomerMessage;
+          console.log(`👤 Customer: "${customerMessage}"`);
         }
       }
 

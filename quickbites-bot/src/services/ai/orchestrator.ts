@@ -10,7 +10,7 @@ const anthropic = new Anthropic({
 
 export interface Message {
   role: 'user' | 'assistant';
-  content: string;
+  content: string | Array<any>;
 }
 
 export interface ConversationTurn {
@@ -35,38 +35,92 @@ export class Orchestrator {
     });
 
     let attempts = 0;
-    const maxAttempts = 3;
+    const maxAttempts = 5;
 
     while (attempts < maxAttempts) {
       try {
         const response = await this.callClaude();
 
-        if (response.type === 'message') {
+        // Check if response contains tool_use blocks
+        const toolUseBlocks = response.content.filter((block: any) => block.type === 'tool_use');
+        const textBlocks = response.content.filter((block: any) => block.type === 'text');
+
+        if (toolUseBlocks.length > 0) {
+          // Check if this is the submit_support_actions tool
+          const submitActionBlock = toolUseBlocks.find((block: any) => block.name === 'submit_support_actions');
+
+          if (submitActionBlock) {
+            // Claude is submitting final actions - execute and return
+            const toolResults = await this.executeToolUse([submitActionBlock]);
+
+            // Add Claude's response to conversation
+            this.conversationHistory.push({
+              role: 'assistant',
+              content: response.content
+            });
+
+            // Add tool result to conversation (required by Anthropic API)
+            this.conversationHistory.push({
+              role: 'user',
+              content: toolResults
+            });
+
+            // Extract actions from the tool result - it's the content field
+            let actions = toolResults[0]?.content || [];
+
+            // Parse if it's a string
+            if (typeof actions === 'string') {
+              try {
+                actions = JSON.parse(actions);
+              } catch (error) {
+                console.error(`Failed to parse actions string:`, error);
+                actions = [];
+              }
+            }
+
+            // Get the text message from any text blocks
+            const textBlocks = response.content.filter((block: any) => block.type === 'text');
+            const botMessage = textBlocks.length > 0 ? textBlocks[0].text : '';
+
+            return {
+              bot_message: botMessage,
+              actions,
+              tools_used: ['submit_support_actions']
+            };
+          }
+
+          // Claude wants to use other tools - execute them
+          const toolResults = await this.executeToolUse(toolUseBlocks);
+
+          // Add Claude's response (including tool_use) to conversation
+          this.conversationHistory.push({
+            role: 'assistant',
+            content: response.content
+          });
+
+          // Add tool results to conversation as user message (must follow tool_use)
+          this.conversationHistory.push({
+            role: 'user',
+            content: toolResults
+          });
+
+          attempts++;
+          continue; // Try again with tool results
+        } else {
           // Claude gave a direct response (no tools)
-          const botMessage = response.content[0]?.type === 'text' ? response.content[0].text : '';
+          const botMessage = textBlocks.length > 0 ? textBlocks[0].text : '';
 
           this.conversationHistory.push({
             role: 'assistant',
-            content: botMessage
+            content: response.content
           });
 
+          // No actions if Claude didn't call submit_support_actions
           return {
             bot_message: botMessage,
             actions: [],
             tools_used: []
           };
-        } else if (response.type === 'tool_use') {
-          // Claude wants to use tools
-          const toolResults = await this.executeToolUse(response.content);
-
-          // Add tool results to conversation and continue
-          this.conversationHistory.push({
-            role: 'assistant',
-            content: JSON.stringify(toolResults)
-          });
-
-          attempts++;
-          continue; // Try again with tool results
         }
       } catch (error) {
         console.error('Claude API error:', error);
@@ -81,7 +135,7 @@ export class Orchestrator {
 
         return {
           bot_message: fallbackMessage,
-          actions: [{ type: 'escalate_to_human', reason: 'AI system error' }],
+          actions: [{ type: 'escalate_to_human' as const, reason: 'AI system error' }],
           tools_used: []
         };
       }
@@ -97,7 +151,7 @@ export class Orchestrator {
 
     return {
       bot_message: escalationMessage,
-      actions: [{ type: 'escalate_to_human', reason: 'Max tool use attempts exceeded' }],
+      actions: [{ type: 'escalate_to_human' as const, reason: 'Max tool use attempts exceeded' }],
       tools_used: []
     };
   }
@@ -114,35 +168,35 @@ export class Orchestrator {
     return response;
   }
 
-  private async executeToolUse(toolUseContent: any[]): Promise<any[]> {
+  private async executeToolUse(toolUseBlocks: any[]): Promise<any[]> {
     const results = [];
 
-    for (const toolUse of toolUseContent) {
-      if (toolUse.type === 'tool_use') {
-        const toolName = toolUse.name;
-        const toolInput = toolUse.input;
+    for (const toolUse of toolUseBlocks) {
+      const toolName = toolUse.name;
+      const toolInput = toolUse.input;
+      const toolUseId = toolUse.id;
 
-        try {
-          const result = await executeTool(toolName, toolInput);
-          const formattedResult = formatToolResult(toolName, result);
+      try {
+        const result = await executeTool(toolName, toolInput);
+        const formattedResult = formatToolResult(toolName, result);
 
-          results.push({
-            type: 'tool_result',
-            tool_use_id: toolUse.id,
-            content: formattedResult
-          });
-        } catch (error) {
-          results.push({
-            type: 'tool_result',
-            tool_use_id: toolUse.id,
-            content: `Error executing ${toolName}: ${error}`
-          });
-        }
+        results.push({
+          type: 'tool_result',
+          tool_use_id: toolUseId,
+          content: formattedResult
+        });
+      } catch (error) {
+        results.push({
+          type: 'tool_result',
+          tool_use_id: toolUseId,
+          content: `Error executing ${toolName}: ${error}`
+        });
       }
     }
 
     return results;
   }
+
 
   async processWithActions(customerMessage: string): Promise<{
     bot_message: string;

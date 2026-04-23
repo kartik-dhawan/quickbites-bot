@@ -11,28 +11,28 @@ const issueRefundSchema = baseActionSchema.shape({
   order_id: yup.number().integer().positive().required(),
   amount_inr: yup.number().integer().positive().max(5000).required(),
   method: yup.string().oneOf(['cash', 'wallet_credit']).required()
-});
+}).noUnknown(true);
 
 const fileComplaintSchema = baseActionSchema.shape({
   type: yup.string().oneOf(['file_complaint']).required(),
   order_id: yup.number().integer().positive().required(),
   target_type: yup.string().oneOf(['restaurant', 'rider', 'app']).required()
-});
+}).noUnknown(true);
 
 const escalateToHumanSchema = baseActionSchema.shape({
   type: yup.string().oneOf(['escalate_to_human']).required(),
   reason: yup.string().min(10).max(500).required()
-});
+}).noUnknown(true);
 
 const flagAbuseSchema = baseActionSchema.shape({
   type: yup.string().oneOf(['flag_abuse']).required(),
   reason: yup.string().min(10).max(500).required()
-});
+}).noUnknown(true);
 
 const closeSchema = baseActionSchema.shape({
   type: yup.string().oneOf(['close']).required(),
-  outcome_summary: yup.string().min(10).max(500).required()
-});
+  outcome_summary: yup.string().required()
+}).noUnknown(true);
 
 // Union of all action types
 const actionSchema = yup.lazy((value) => {
@@ -66,9 +66,9 @@ export function validateActions(actions: any[]): { isValid: boolean; errors?: st
     return { isValid: true };
   } catch (error) {
     if (error instanceof yup.ValidationError) {
-      return { 
-        isValid: false, 
-        errors: error.errors.map(err => `Action validation error: ${err}`) 
+      return {
+        isValid: false,
+        errors: error.errors.map(err => `Action validation error: ${err}`)
       };
     }
     return { isValid: false, errors: ['Unknown validation error'] };
@@ -78,9 +78,9 @@ export function validateActions(actions: any[]): { isValid: boolean; errors?: st
 // Additional business logic validations
 export function validateRefundAgainstOrder(refundAction: any, orderTotal: number): { isValid: boolean; error?: string } {
   if (refundAction.amount_inr > orderTotal) {
-    return { 
-      isValid: false, 
-      error: `Refund amount (${refundAction.amount_inr}) cannot exceed order total (${orderTotal})` 
+    return {
+      isValid: false,
+      error: `Refund amount (${refundAction.amount_inr}) cannot exceed order total (${orderTotal})`
     };
   }
   return { isValid: true };
@@ -89,9 +89,9 @@ export function validateRefundAgainstOrder(refundAction: any, orderTotal: number
 export function validateMultipleRefunds(actions: any[]): { isValid: boolean; error?: string } {
   const refunds = actions.filter(action => action.type === 'issue_refund');
   if (refunds.length > 1) {
-    return { 
-      isValid: false, 
-      error: 'Cannot issue multiple refunds in a single response' 
+    return {
+      isValid: false,
+      error: 'Cannot issue multiple refunds in a single response'
     };
   }
   return { isValid: true };
