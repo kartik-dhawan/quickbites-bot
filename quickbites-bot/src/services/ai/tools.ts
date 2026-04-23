@@ -101,8 +101,8 @@ export const anthropicTools = [
               },
               method: {
                 type: 'string',
-                enum: ['cash', 'wallet_credit'],
-                description: 'Refund method - REQUIRED for issue_refund action, must be exactly "cash" or "wallet_credit". Do not include for other action types.'
+                enum: ['cash', 'wallet_credit', 'original_payment_method'],
+                description: 'Refund method - REQUIRED for issue_refund action, must be exactly "cash", "wallet_credit", or "original_payment_method". Do not include for other action types.'
               },
               target_type: {
                 type: 'string',

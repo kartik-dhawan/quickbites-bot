@@ -10,7 +10,7 @@ const issueRefundSchema = baseActionSchema.shape({
   type: yup.string().oneOf(['issue_refund']).required(),
   order_id: yup.number().integer().positive().required(),
   amount_inr: yup.number().integer().positive().max(5000).required(),
-  method: yup.string().oneOf(['cash', 'wallet_credit']).required()
+  method: yup.string().oneOf(['cash', 'wallet_credit', 'original_payment_method']).required()
 }).noUnknown(true);
 
 const fileComplaintSchema = baseActionSchema.shape({
